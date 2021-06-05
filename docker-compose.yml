@@ -1,0 +1,42 @@
+version: "3.8"
+services:
+  bank-db:
+    container_name: bank-db
+    image: 'mysql/mysql-server:latest'
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=
+      - MYSQL_ROOT_HOST=%
+      - MYSQL_DATABASE=bbdb
+    restart: always
+    volumes:
+      - db-datavolume:/var/lib/mysql
+  bank-cache:
+    container_name: cache-redis
+    image: redis:latest
+    command: [ "redis-server", "--protected-mode", "no" ]
+    ports:
+      - "6379:6379"
+    deploy:
+      replicas: 1
+    restart: on-failure
+  banking:
+    container_name: banking
+    image: banking:latest
+    ports:
+      - 8080:8080
+    restart: on-failure
+    depends_on:
+      better-banking-db:
+        condition: service_healthy
+    links:
+      - bank-db
+      - bank-cache
+    environment:
+      - testnet.integration.client=better-banking
+      - testnet.integration.secret=
+      - MYSQL_HOST=better-banking-db
+      - io.bank.integration.url-base=http://<your_ip}:8080
+volumes:
+  db-datavolume:
